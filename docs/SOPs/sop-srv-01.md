@@ -72,7 +72,8 @@ Paste the following. The IQN date and hostname can be adjusted but must stay con
 ```xml
 <target iqn.2026-04.local.alpine:win-target>
     backing-store /var/lib/iscsi_disks/win-san.img
-    # Open access — no CHAP authentication details
+    bsopts "direct_io=1"
+    # Open access — no CHAP authentication
 </target>
 ```
 
