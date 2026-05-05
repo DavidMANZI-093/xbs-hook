@@ -78,10 +78,32 @@ Paste the following. The IQN date and hostname can be adjusted but must stay con
 </target>
 ```
 
-Apply and verify:
+`tgtd` does not automatically scan `conf.d/`. Wire it into the main config:
 
 ```bash
-doas rc-service tgtd restart
+# 2.3 Add the include directive to the main targets config
+doas nano /etc/tgt/targets.conf
+```
+
+Add this line at the bottom:
+
+```
+include /etc/tgt/conf.d/*.conf
+```
+
+Load the config into the running daemon and register `tgt-admin` for persistence:
+
+```bash
+# 2.4 Execute the configuration (loads targets without a full restart)
+doas tgt-admin --execute
+
+# 2.5 Register tgt-admin to re-apply targets automatically after boot
+doas rc-update add tgt-admin default
+```
+
+Verify:
+
+```bash
 doas tgtadm --mode target --op show
 ```
 
@@ -182,8 +204,11 @@ Revert all changes and return the host to its baseline state.
 
 ```bash
 # 5.1 Stop and disable services
+doas tgt-admin --delete ALL
+doas rc-service tgtd stop
+doas rc-update del tgtd default
+doas rc-update del tgt-admin default
 doas rc-service dnsmasq stop && doas rc-update del dnsmasq default
-doas rc-service tgtd stop && doas rc-update del tgtd default
 
 # 5.2 Remove TFTP root and dnsmasq config
 doas rm -rf /srv/tftp
