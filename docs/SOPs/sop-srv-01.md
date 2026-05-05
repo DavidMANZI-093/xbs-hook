@@ -168,8 +168,8 @@ doas rc-service dnsmasq start
 Stage the chainload payloads in the TFTP root.
 
 ```bash
-# 4.1 Fetch the iPXE UEFI binary
-doas wget -O /srv/tftp/ipxe.efi https://boot.ipxe.org/ipxe.efi
+# 4.1 Fetch the iPXE UEFI binary (x86_64 UEFI — see boot.ipxe.org/x86_64-efi/ for other arches)
+doas wget -O /srv/tftp/ipxe.efi https://boot.ipxe.org/x86_64-efi/ipxe.efi
 
 # 4.2 Write the SAN boot script
 doas nano /srv/tftp/boot.ipxe
