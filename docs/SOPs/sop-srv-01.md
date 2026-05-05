@@ -17,7 +17,18 @@
 
 - Alpine Linux installed and accessible via SSH or console
 - Static IP assigned to the server NIC (default: `10.0.0.1` — see SOP-NET-02)
-- apk package index updated: `doas apk update`
+- Community repository enabled (required for `scsi-tgt`)
+- apk package index updated
+
+To enable the community repository if not already active:
+
+```bash
+# Uncomment the /community line in the repos file
+doas nano /etc/apk/repositories
+
+# Then update the index
+doas apk update
+```
 
 ---
 
@@ -38,11 +49,11 @@ du -sh /var/lib/iscsi_disks/win-san.img
 
 ## 2. iSCSI Target Configuration (TGT)
 
-Alpine does not ship with LIO/targetcli. Use `tgt` instead.
+On Alpine, the iSCSI target stack is the `scsi-tgt` suite, available in the community repository.
 
 ```bash
-# 2.1 Install tgt
-doas apk add tgt
+# 2.1 Install the daemon, admin scripts, and OpenRC init service
+doas apk add scsi-tgt scsi-tgt-scripts scsi-tgt-openrc
 
 # 2.2 Enable and start the service
 doas rc-update add tgtd default
@@ -52,6 +63,7 @@ doas rc-service tgtd start
 Create the target configuration file:
 
 ```bash
+doas mkdir -p /etc/tgt/conf.d
 doas nano /etc/tgt/conf.d/win-target.conf
 ```
 
@@ -183,5 +195,5 @@ doas rm /etc/tgt/conf.d/win-target.conf
 doas rm -rf /var/lib/iscsi_disks
 
 # 5.4 Uninstall packages (optional)
-doas apk del tgt dnsmasq
+doas apk del scsi-tgt scsi-tgt-scripts scsi-tgt-openrc dnsmasq
 ```
