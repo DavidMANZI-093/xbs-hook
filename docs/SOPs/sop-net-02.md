@@ -67,18 +67,18 @@ doas ethtool --set-eee $TARGET_IF eee off
 doas ethtool -s $TARGET_IF wol d
 
 # 3.4 Disable PCIe ASPM via kernel boot parameter
-doas nano /etc/update-extlinux.conf
+doas nano /etc/default/grub
 ```
 
-Locate `default_kernel_opts` and append `pcie_aspm=off`. Example:
+Locate `GRUB_CMDLINE_LINUX_DEFAULT` and append `pcie_aspm=off`. Example:
 
 ```
-default_kernel_opts="quiet rootfstype=ext4 pcie_aspm=off"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet pcie_aspm=off"
 ```
 
 ```bash
-# 3.5 Regenerate bootloader config
-doas update-extlinux
+# 3.5 Regenerate GRUB config
+doas grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
 > **Note:** The ASPM change requires a reboot to take effect. Reboot after completing Section 4.
@@ -153,8 +153,8 @@ doas nano /etc/network/interfaces
 # Delete or comment out the eth0 static block added in Section 4
 doas rc-service networking restart
 
-# 6.4 Remove kernel parameter
-doas nano /etc/update-extlinux.conf
-# Remove pcie_aspm=off from default_kernel_opts
-doas update-extlinux
+# 6.4 Remove the ASPM kernel parameter
+doas nano /etc/default/grub
+# Remove pcie_aspm=off from GRUB_CMDLINE_LINUX_DEFAULT
+doas grub-mkconfig -o /boot/grub/grub.cfg
 ```
