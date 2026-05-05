@@ -9,7 +9,7 @@
 | Host OS | Alpine Linux (x86_64) |
 | Date Verified | May 2026 |
 | Status | Validated |
-| Related | [SOP-SRV-01: iSCSI Target & PXE Provisioning](./sop-srv-01.md) |
+| Related | [SOP-SRV-01: iSCSI Target & PXE Provisioning](./sop-srv-01.md), [SOP-NET-03: r8168 Local Package Build](./sop-net-03.md) |
 
 ---
 
@@ -31,16 +31,15 @@ export TARGET_IF="eth0"
 The default `r8169` kernel module causes link flapping under sustained iSCSI throughput due to TCP offload issues. The proprietary `r8168` module is stable for this workload.
 
 ```bash
-# 2.1 Install kernel headers and the proprietary driver
-doas apk add linux-headers
-
-# On Alpine, install r8168 via dkms or the community repo if available:
+# 2.1 Attempt direct install from Alpine community repo
 doas apk add r8168
-# If unavailable in your Alpine branch, build from source:
-# https://github.com/mtorromeo/r8168
+```
 
-# 2.2 Blacklist the unstable module
-echo "blacklist r8169" | doas tee /etc/modprobe.d/r8169_blacklist.conf
+If the package is not found, build and install it locally first — follow **[SOP-NET-03: r8168 Local Package Build](./sop-net-03.md)**, then return here.
+
+```bash
+# 2.2 Blacklist r8169 (skip if installed via SOP-NET-03 — blacklist is bundled)
+echo "blacklist r8169" | doas tee /etc/modprobe.d/r8168-blacklist.conf
 
 # 2.3 Swap the active module
 doas modprobe -r r8169
@@ -48,7 +47,7 @@ doas modprobe r8168
 
 # 2.4 Confirm the correct driver is in use
 lspci -vnn | grep -A 10 Ethernet | grep "Kernel driver in use"
-# Expected output: Kernel driver in use: r8168
+# Expected: Kernel driver in use: r8168
 ```
 
 ---
@@ -140,17 +139,21 @@ doas rc-service dnsmasq restart
 
 ```bash
 # 6.1 Restore the default r8169 driver
-doas rm /etc/modprobe.d/r8169_blacklist.conf
 doas modprobe -r r8168
 doas modprobe r8169
-doas apk del r8168
 
-# 6.2 Remove the static IP config
+# 6.2 Remove the r8168 package
+# If installed from the Alpine repo:
+doas apk del r8168
+# If installed via SOP-NET-03 (local build), also remove the blacklist config:
+doas rm -f /etc/modprobe.d/r8168-blacklist.conf
+
+# 6.3 Remove the static IP config
 doas nano /etc/network/interfaces
 # Delete or comment out the eth0 static block added in Section 4
 doas rc-service networking restart
 
-# 6.3 Remove kernel parameter
+# 6.4 Remove kernel parameter
 doas nano /etc/update-extlinux.conf
 # Remove pcie_aspm=off from default_kernel_opts
 doas update-extlinux
