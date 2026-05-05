@@ -51,9 +51,12 @@ doas cp /home/builder/.abuild/*.rsa.pub /etc/apk/keys/
 
 ```bash
 # Create the package directory as builder to ensure correct ownership
+# abuild derives the repo name from the PARENT of the APKBUILD directory:
+#   output = ~/packages/<parent-name>/x86_64/
+# So to get ~/packages/r8168/x86_64/, the structure must be ~/r8168/r8168/
 doas -u builder -s
-mkdir -p ~/packages/r8168
-cd ~/packages/r8168
+mkdir -p ~/r8168/r8168
+cd ~/r8168/r8168
 ```
 
 Create `APKBUILD`:
@@ -134,7 +137,7 @@ doas apk upgrade linux-lts linux-lts-dev
 
 # 4.2 Switch to the builder user and go to the package directory
 doas -u builder -s
-cd ~/packages/r8168
+cd ~/r8168/r8168
 
 # 4.3 Bump pkgrel in APKBUILD to invalidate the old build
 # Change: pkgrel=1 → pkgrel=2 (increment on each rebuild)
