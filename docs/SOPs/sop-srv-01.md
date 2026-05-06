@@ -106,7 +106,11 @@ Verify:
 doas tgtadm --mode target --op show
 ```
 
-The output should list `iqn.2026-04.local.alpine:win-target` with one LUN.
+The output should list `iqn.2026-04.local.alpine:win-target` with LUN 0 (controller) and LUN 1 (disk). If the driver state shows `offline` and connections are reset, bring it ready:
+
+```bash
+doas tgtadm --mode sys --op update --name State --value ready
+```
 
 ---
 
@@ -161,6 +165,13 @@ doas rc-update add dnsmasq default
 doas rc-service dnsmasq start
 ```
 
+If dnsmasq fails to start with a lease file permission error, fix the directory ownership:
+
+```bash
+doas chown dnsmasq:dnsmasq /var/lib/misc
+doas rc-service dnsmasq restart
+```
+
 ---
 
 ## 4. Bootloader Staging
@@ -177,21 +188,25 @@ doas nano /srv/tftp/boot.ipxe
 
 Replace `[HOST_IP]` with this server's static IP (default: `10.0.0.1`).
 
+> **Scope note:** This script verifies the iSCSI link is functional by hooking the drive into the client's boot layer. `sanboot` is intentionally omitted — there is no OS on the disk at this stage. A successful hook drops to the iPXE shell so you can confirm drive visibility before any OS installation.
+
 ```text
 #!ipxe
 echo =========================================
-echo  iSCSI SAN Boot — SOP-SRV-01
+echo  iSCSI SAN Hook Verification — SOP-SRV-01
 echo  Host: [HOST_IP]
 echo =========================================
 
-# Attach iSCSI target as primary boot drive
-sanhook --drive 0x80 iscsi:[HOST_IP]::::iqn.2026-04.local.alpine:win-target || goto failed
+# Attach iSCSI target as drive 0x80
+# LUN 1 is the disk (LUN 0 is the controller — unspecified binding causes I/O errors)
+sanhook --drive 0x80 iscsi:[HOST_IP]:::1:iqn.2026-04.local.alpine:win-target || goto failed
 
-# Boot from attached drive
-sanboot --drive 0x80 || goto failed
+echo SAN hook successful. Drive 0x80 is mapped.
+echo No OS on disk yet — dropping to shell for manual inspection.
+shell
 
 :failed
-echo SAN Boot Failed. Dropping to shell.
+echo SAN hook FAILED. Check iSCSI target IP, IQN, and tgtd service on the host.
 shell
 ```
 
