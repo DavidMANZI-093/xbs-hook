@@ -188,12 +188,12 @@ doas nano /srv/tftp/boot.ipxe
 
 Replace `[HOST_IP]` with this server's static IP (default: `10.0.0.1`).
 
-> **Scope note:** This script verifies the iSCSI link is functional by hooking the drive into the client's boot layer. `sanboot` is intentionally omitted — there is no OS on the disk at this stage. A successful hook drops to the iPXE shell so you can confirm drive visibility before any OS installation.
+> **Scope note:** `sanhook` verifies the iSCSI link end-to-end. iPXE then chains `XbsHook.efi` — which registers its `ExitBootServices` callback and returns — followed by `Shell.efi`, giving a full UEFI Shell for filesystem navigation. `sanboot` is omitted until an OS is installed on the disk.
 
 ```text
 #!ipxe
 echo =========================================
-echo  iSCSI SAN Hook Verification — SOP-SRV-01
+echo  xbs-hook — iSCSI Hook & UEFI Shell
 echo  Host: [HOST_IP]
 echo =========================================
 
@@ -201,13 +201,25 @@ echo =========================================
 # LUN 1 is the disk (LUN 0 is the controller — unspecified binding causes I/O errors)
 sanhook --drive 0x80 iscsi:[HOST_IP]:::1:iqn.2026-04.local.alpine:win-target || goto failed
 
-echo SAN hook successful. Drive 0x80 is mapped.
-echo No OS on disk yet — dropping to shell for manual inspection.
-shell
+# Install the EBS hook (registers callback, returns to iPXE)
+echo Loading XbsHook.efi...
+chain tftp://[HOST_IP]/XbsHook.efi || goto failed
+
+# Launch UEFI Shell for interactive filesystem access
+# Hook callback will fire when ExitBootServices is eventually called
+echo Launching UEFI Shell...
+chain tftp://[HOST_IP]/Shell.efi || goto failed
 
 :failed
-echo SAN hook FAILED. Check iSCSI target IP, IQN, and tgtd service on the host.
+echo FAILED. Check iSCSI target IP, IQN, and tgtd service on the host.
 shell
+```
+
+**Dev deploy loop:** After each build, transfer updated files to `/srv/tftp/` on the Alpine server and reboot the client:
+
+```
+~/edk2/Build/XbsHook/DEBUG_GCC/X64/XbsHook.efi  →  /srv/tftp/XbsHook.efi
+~/edk2/Build/Shell/DEBUG_GCC/X64/Shell.efi       →  /srv/tftp/Shell.efi
 ```
 
 ---
