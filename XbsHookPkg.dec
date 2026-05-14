@@ -1,0 +1,5 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = XbsHookPkg
+  PACKAGE_GUID                   = 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+  PACKAGE_VERSION                = 1.0
